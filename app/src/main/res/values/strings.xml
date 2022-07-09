@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">RubikCubeSolver</string>
+    <string name="scan_btn_name">SCAN</string>
 </resources>
