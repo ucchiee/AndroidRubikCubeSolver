@@ -10,6 +10,7 @@ import static java.lang.Math.min;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.AspectRatio;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
@@ -26,6 +27,8 @@ import androidx.lifecycle.LifecycleOwner;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.ImageFormat;
+import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Surface;
@@ -63,8 +66,8 @@ public class MainActivity extends AppCompatActivity {
     private ImageAnalysis imageAnalysis = null;
     final private ExecutorService cameraExecutor = Executors.newSingleThreadExecutor();
     /*** For Rubik's Cube Solver ***/
-    private Mat trainData = new Mat(6, 4, CV_32F);
-    private KNearest knn = KNearest.create();
+    final private Mat trainData = new Mat(6, 4, CV_32F);
+    final private KNearest knn = KNearest.create();
 
     static {
         System.loadLibrary("opencv_java4");
@@ -100,13 +103,18 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
                     preview = new Preview.Builder().build();
-                    imageAnalysis = new ImageAnalysis.Builder().build();
+                    imageAnalysis = new ImageAnalysis.Builder()
+                            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                            // .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
+                            .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                            .build();
                     imageAnalysis.setAnalyzer(cameraExecutor, new MyImageAnalyzer());
                     CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
 
                     cameraProvider.unbindAll();
+                    preview.setSurfaceProvider(previewView.getSurfaceProvider());
                     camera = cameraProvider.bindToLifecycle((LifecycleOwner) context, cameraSelector, preview, imageAnalysis);
-                    preview.setSurfaceProvider(previewView.createSurfaceProvider(camera.getCameraInfo()));
+                    // preview.setSurfaceProvider(previewView.createSurfaceProvider(camera.getCameraInfo()));
                 } catch (Exception e) {
                     Log.e(TAG, "[startCamera] Use case binding failed", e);
                 }
@@ -115,8 +123,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private class MyImageAnalyzer implements ImageAnalysis.Analyzer {
-        private Mat matPrevious = null;
-        private String[][] detectedColor = {{null, null, null}, {null, null, null}, {null, null, null}};
+        final private String[][] detectedColor = {{null, null, null}, {null, null, null}, {null, null, null}};
 
         @Override
         public void analyze(@NonNull ImageProxy image) {
@@ -126,29 +133,24 @@ public class MainActivity extends AppCompatActivity {
             /* Fix image rotation (it looks image in PreviewView is automatically fixed by CameraX???) */
             Mat mat = fixMatRotation(matOrg);
 
-            // Log.i(TAG, "[analyze] width = " + image.getWidth() + ", height = " + image.getHeight() + "Rotation = " + previewView.getDisplay().getRotation());
-            // Log.i(TAG, "[analyze] mat width = " + matOrg.cols() + ", mat height = " + matOrg.rows());
-
             /* Do some image processing */
             Mat matOutput = new Mat(mat.rows(), mat.cols(), mat.type());
             mat.copyTo(matOutput);
-            // if (matPrevious == null) matPrevious = mat;
-            // Core.absdiff(mat, matPrevious, matOutput);
-            // matPrevious = mat;
 
-            // calculate each point
+            // calculate box point
             double cubeLen = min(image.getWidth(), image.getHeight()) * 0.8;
             int boxLen = (int) (cubeLen / 3);
             int startX = (int) ((min(image.getWidth(), image.getHeight()) - cubeLen) / 2);
             int startY = (int) (max(image.getHeight(), image.getWidth()) * 0.2);
 
-            // calc average RGB of each box
+            // detect color of each box
             for (int i = 0; i < 3; i++) {
                 for (int j = 0; j < 3; j++) {
                     Mat color = Util.calcBoxColorAve(mat, startX + boxLen * i, startY + boxLen * j, boxLen);
                     Mat res = new Mat();
+                    Log.i(TAG, "[analyze] : (" + i + ", " + j + ") = " + color.dump());
                     knn.findNearest(color, 1, res);
-                    detectedColor[i][j] = Util.colorLabel[(int)res.get(0, 0)[0]];
+                    detectedColor[i][j] = Util.colorLabel[(int) res.get(0, 0)[0]];
                 }
             }
 
@@ -189,21 +191,36 @@ public class MainActivity extends AppCompatActivity {
         private Mat getMatFromImage(ImageProxy image) {
             /* Create cv::mat(RGB888) from image(NV21) */
             /* https://stackoverflow.com/questions/30510928/convert-android-camera2-api-yuv-420-888-to-rgb */
-            ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
-            ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
-            ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
-            int ySize = yBuffer.remaining();
-            int uSize = uBuffer.remaining();
-            int vSize = vBuffer.remaining();
-            byte[] nv21 = new byte[ySize + uSize + vSize];
-            yBuffer.get(nv21, 0, ySize);
-            vBuffer.get(nv21, ySize, vSize);
-            uBuffer.get(nv21, ySize + vSize, uSize);
-            Mat yuv = new Mat(image.getHeight() + image.getHeight() / 2, image.getWidth(), CvType.CV_8UC1);
-            yuv.put(0, 0, nv21);
-            Mat mat = new Mat();
-            Imgproc.cvtColor(yuv, mat, Imgproc.COLOR_YUV2RGB_NV21, 3);
-            return mat;
+            if (image.getFormat() == ImageFormat.YUV_420_888) {
+                ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
+                ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
+                ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
+                int ySize = yBuffer.remaining();
+                int uSize = uBuffer.remaining();
+                int vSize = vBuffer.remaining();
+                byte[] nv21 = new byte[ySize + uSize + vSize];
+                yBuffer.get(nv21, 0, ySize);
+                vBuffer.get(nv21, ySize, vSize);
+                uBuffer.get(nv21, ySize + vSize, uSize);
+                Mat yuv = new Mat(image.getHeight() + image.getHeight() / 2, image.getWidth(), CvType.CV_8UC1);
+                yuv.put(0, 0, nv21);
+                Mat mat = new Mat();
+                Imgproc.cvtColor(yuv, mat, Imgproc.COLOR_YUV2RGB_NV21, 3);
+                return mat;
+            } else if (image.getFormat() == PixelFormat.RGBA_8888) {
+                ByteBuffer argbBuffer = image.getPlanes()[0].getBuffer(); // ARGBARGB...
+                int argbSize = argbBuffer.remaining();
+                byte[] argb_buf = new byte[argbSize];
+                argbBuffer.get(argb_buf, 0, argbSize);
+                Mat bgra = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
+                bgra.put(0, 0, argb_buf);
+                Mat rgb = new Mat();
+                Imgproc.cvtColor(bgra, rgb, Imgproc.COLOR_BGRA2BGR);
+                return rgb;
+            }
+            Log.e(TAG, "Unexpected format : " + image.getFormat());
+            assert false;
+            return null;
         }
 
         private Mat fixMatRotation(Mat matOrg) {
