@@ -3,6 +3,7 @@ package jp.ac.titech.itpro.sdl.rubikcubesolver;
 import static org.opencv.core.CvType.CV_32F;
 import static org.opencv.ml.Ml.ROW_SAMPLE;
 
+import org.opencv.core.MatOfDouble;
 import org.opencv.utils.Converters;
 
 import static java.lang.Math.max;
@@ -123,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private class MyImageAnalyzer implements ImageAnalysis.Analyzer {
-        final private String[][] detectedColor = {{null, null, null}, {null, null, null}, {null, null, null}};
+        final private int[][] detectedColor = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
 
         @Override
         public void analyze(@NonNull ImageProxy image) {
@@ -144,22 +145,24 @@ public class MainActivity extends AppCompatActivity {
             int startY = (int) (max(image.getHeight(), image.getWidth()) * 0.2);
 
             // detect color of each box
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 3; j++) {
-                    Mat color = Util.calcBoxColorAve(mat, startX + boxLen * i, startY + boxLen * j, boxLen);
-                    Mat res = new Mat();
-                    Log.i(TAG, "[analyze] : (" + i + ", " + j + ") = " + color.dump());
-                    knn.findNearest(color, 1, res);
-                    detectedColor[i][j] = Util.colorLabel[(int) res.get(0, 0)[0]];
+            synchronized (detectedColor) {
+                for (int i = 0; i < 3; i++) {
+                    for (int j = 0; j < 3; j++) {
+                        Mat color = Util.calcBoxColorAve(mat, startX + boxLen * i, startY + boxLen * j, boxLen);
+                        Mat res = new Mat();
+                        knn.findNearest(color, 1, res);
+                        detectedColor[i][j] = (int) res.get(0, 0)[0];
+                    }
                 }
             }
 
             // draw frame and detected color
-            drawCubeFrame(matOutput, startX, startY, boxLen, new Scalar(255, 0, 0), 2);
+            // drawCubeFrame(matOutput, startX, startY, boxLen, new Scalar(255, 0, 0), 2);
             for (int i = 0; i < 3; i++) {
                 for (int j = 0; j < 3; j++) {
-                    Imgproc.putText(matOutput, detectedColor[i][j], new Point(startX + boxLen * i, startY + boxLen * j), 2, 3, new Scalar(255, 0, 0));
-                    // Log.i(TAG, "[analyze] (" + i + ", " + j + ") = " + detectedColor[i][j].dump());
+                    Imgproc.putText(matOutput, Util.colorLabel[detectedColor[i][j]], new Point(startX + boxLen * i, startY + boxLen * (j + 1)), 2, 3, new Scalar(Util.colorData[detectedColor[i][j]]));
+                    Imgproc.rectangle(matOutput, new Rect(startX + boxLen * i, startY + boxLen * j, boxLen, boxLen), new Scalar(255, 0, 0), 2);
+                    Log.v(TAG, "[analyze] (" + i + ", " + j + ") = " + detectedColor[i][j]);
                 }
             }
 
@@ -177,15 +180,6 @@ public class MainActivity extends AppCompatActivity {
 
             /* Close the image otherwise, this function is not called next time */
             image.close();
-        }
-
-        private void drawCubeFrame(Mat mat, int startX, int startY, int boxLen, Scalar scalar, int thickness) {
-            /* Draw 2d flat cube */
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 3; j++) {
-                    Imgproc.rectangle(mat, new Rect(startX + boxLen * i, startY + boxLen * j, boxLen, boxLen), scalar, thickness);
-                }
-            }
         }
 
         private Mat getMatFromImage(ImageProxy image) {
