@@ -6,32 +6,55 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <LinearLayout
-        android:id="@+id/linearLayout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@id/cubeView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-        <ImageView
-            android:id="@+id/imageView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_weight="0.4" />
+    <jp.ac.titech.itpro.sdl.rubikcubesolver.CubeView
+        android:id="@+id/cubeView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@id/scanButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/imageView" />
 
-        <androidx.camera.view.PreviewView
-            android:id="@+id/previewView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_weight="0.4">
+    <Button
+        android:id="@+id/prevButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/prev_btn_name"
+        android:textSize="@dimen/button_text_size"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/scanButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/cubeView" />
 
-        </androidx.camera.view.PreviewView>
+    <Button
+        android:id="@+id/scanButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/scan_btn_name"
+        android:textSize="@dimen/button_text_size"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@id/nextButton"
+        app:layout_constraintStart_toEndOf="@id/prevButton"
+        app:layout_constraintTop_toBottomOf="@id/cubeView" />
 
-        <Button
-            android:id="@+id/scan_btn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/scan_btn_name" />
-
-    </LinearLayout>
+    <Button
+        android:id="@+id/nextButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/next_btn_name"
+        android:textSize="@dimen/button_text_size"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/scanButton"
+        app:layout_constraintTop_toBottomOf="@id/cubeView" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

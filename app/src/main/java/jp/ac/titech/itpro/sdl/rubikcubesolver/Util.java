@@ -4,14 +4,20 @@ import static org.opencv.core.CvType.CV_32F;
 import static org.opencv.core.CvType.CV_8U;
 
 
+import android.graphics.ImageFormat;
+import android.graphics.PixelFormat;
 import android.util.Log;
 
+import androidx.camera.core.ImageProxy;
+
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -49,5 +55,40 @@ public class Util {
         }
         Log.v(TAG, "mean(matrix) : " + ret.dump());
         return ret;
+    }
+
+    static public Mat getMatFromImage(ImageProxy image) {
+        /* Create cv::mat(RGB888) from image(NV21) */
+        /* https://stackoverflow.com/questions/30510928/convert-android-camera2-api-yuv-420-888-to-rgb */
+        if (image.getFormat() == ImageFormat.YUV_420_888) {
+            ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
+            ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
+            ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
+            int ySize = yBuffer.remaining();
+            int uSize = uBuffer.remaining();
+            int vSize = vBuffer.remaining();
+            byte[] nv21 = new byte[ySize + uSize + vSize];
+            yBuffer.get(nv21, 0, ySize);
+            vBuffer.get(nv21, ySize, vSize);
+            uBuffer.get(nv21, ySize + vSize, uSize);
+            Mat yuv = new Mat(image.getHeight() + image.getHeight() / 2, image.getWidth(), CvType.CV_8UC1);
+            yuv.put(0, 0, nv21);
+            Mat mat = new Mat();
+            Imgproc.cvtColor(yuv, mat, Imgproc.COLOR_YUV2RGB_NV21, 3);
+            return mat;
+        } else if (image.getFormat() == PixelFormat.RGBA_8888) {
+            ByteBuffer argbBuffer = image.getPlanes()[0].getBuffer(); // ARGBARGB...
+            int argbSize = argbBuffer.remaining();
+            byte[] argb_buf = new byte[argbSize];
+            argbBuffer.get(argb_buf, 0, argbSize);
+            Mat bgra = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
+            bgra.put(0, 0, argb_buf);
+            Mat rgb = new Mat();
+            Imgproc.cvtColor(bgra, rgb, Imgproc.COLOR_BGRA2BGR);
+            return rgb;
+        }
+        Log.e(TAG, "Unexpected format : " + image.getFormat());
+        assert false;
+        return null;
     }
 }
