@@ -42,19 +42,9 @@
         android:text="@string/scan_btn_name"
         android:textSize="@dimen/button_text_size"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="@id/nextButton"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/prevButton"
         app:layout_constraintTop_toBottomOf="@id/cubeView" />
 
-    <Button
-        android:id="@+id/nextButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="@string/next_btn_name"
-        android:textSize="@dimen/button_text_size"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/scanButton"
-        app:layout_constraintTop_toBottomOf="@id/cubeView" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

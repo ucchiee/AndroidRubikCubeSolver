@@ -64,7 +64,6 @@ public class MainActivity extends AppCompatActivity {
     private CubeView cubeView;
     private Button prevButton;
     private Button scanButton;
-    private Button nextButton;
     /*** For CameraX ***/
     private Camera camera = null;
     private ImageAnalysis imageAnalysis = null;
@@ -103,7 +102,6 @@ public class MainActivity extends AppCompatActivity {
         cubeView = findViewById(R.id.cubeView);
         prevButton = findViewById(R.id.prevButton);
         scanButton = findViewById(R.id.scanButton);
-        nextButton = findViewById(R.id.nextButton);
 
         scanButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -155,7 +153,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void display() {
         prevButton.setEnabled(currentFaceIdx > 0);
-        nextButton.setEnabled(currentFaceIdx < 5);
         cubeView.setSideColors(arrSideColors[currentFaceIdx]);
         cubeView.setFrontColors(detectedColor);
         cubeView.setCenterColor(scanOrder[currentFaceIdx]);
