@@ -124,7 +124,9 @@ public class CubeView extends View {
 
     public void setFrontColors(String[][] colors) {
         assert colors.length == 3;
+        String center = frontColors[1][1];
         frontColors = colors;
+        frontColors[1][1] = center;
         invalidate();
     }
 
