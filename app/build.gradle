@@ -44,4 +44,7 @@ dependencies {
     implementation "androidx.camera:camera-lifecycle:$camerax_version"
     // CameraX View class
     implementation "androidx.camera:camera-view:${camerax_version}"
+
+    // material design
+    implementation 'com.google.android.material:material:1.6.1'
 }
