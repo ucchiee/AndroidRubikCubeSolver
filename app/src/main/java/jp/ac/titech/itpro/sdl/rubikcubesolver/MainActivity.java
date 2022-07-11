@@ -75,12 +75,12 @@ public class MainActivity extends AppCompatActivity {
     /***
      * Scan Order : Upper(0, Yellow) -> Right(1, Orange) -> Front(2, Green) -> Down(3, White) -> Left(4, Red) -> Back(5, Blue)
      */
-    final private int[][] detectedColor = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
-    private String scannedCube = "";
-    private int currentFaceIdx = 0;
+    final protected int[][] detectedColor = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+    protected String scannedCube = "";
+    protected int currentFaceIdx = 0;
+    final protected String[] scanOrder = {"Y", "O", "G", "W", "R", "B"};
     // top -> left -> down -> right
-    final private String[] scanOrder = {"Y", "O", "G", "W", "R", "B"};
-    final private String[] arrSideColors = {
+    final protected String[] arrSideColors = {
             "BRGO",  // Yellow
             "YGWB",  // Orange
             "YRWO",  // Green
@@ -108,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Log.e(TAG, "scan button clicked");
                 synchronized (detectedColor) {
-                    if (Util.colorLabel[detectedColor[1][1]] != scanOrder[currentFaceIdx]) return;
+                    // if (Util.colorLabel[detectedColor[1][1]] != scanOrder[currentFaceIdx]) return;
                     for (int i = 0; i < 3; i++) {
                         for (int j = 0; j < 3; j++) {
                             scannedCube += Util.colorLabel[detectedColor[i][j]];
@@ -120,8 +120,18 @@ public class MainActivity extends AppCompatActivity {
                     display();
                 } else {
                     // solve
+                    currentFaceIdx = 0;
+                    scannedCube = "";
+                    display();
                 }
             }
+        });
+        prevButton.setOnClickListener(view -> {
+            assert currentFaceIdx > 0;
+            assert scannedCube.length() == currentFaceIdx * 9;
+            currentFaceIdx--;
+            scannedCube = scannedCube.substring(0, scannedCube.length() - 9);
+            display();
         });
 
         if (checkPermissions()) {
