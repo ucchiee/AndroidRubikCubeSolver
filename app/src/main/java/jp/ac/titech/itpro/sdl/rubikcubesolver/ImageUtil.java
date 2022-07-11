@@ -47,6 +47,15 @@ public class ImageUtil {
             "YOBR",  // Blue
     };
 
+    static String convertCubeAnnotation(String scannedCube) {
+        return scannedCube
+                .replace("Y", "U")
+                .replace("R", "L")
+                .replace("G", "F")
+                .replace("O", "R")
+                .replace("W", "D");
+    }
+
     static Mat calcBoxColorAve(Mat mat, int boxX, int boxY, int boxLen) {
         // extract box as sub matrix
         Mat boxMat = mat.submat(new Rect(boxX, boxY, boxLen, boxLen));

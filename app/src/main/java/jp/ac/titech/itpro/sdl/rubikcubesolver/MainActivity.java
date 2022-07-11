@@ -87,7 +87,6 @@ public class MainActivity extends AppCompatActivity {
         scanButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Log.e(TAG, "scan button clicked");
                 // read detectedColor
                 synchronized (detectedColor) {
                     for (int i = 0; i < 3; i++) {
@@ -95,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
                             if (i == 1 && j == 1) {
                                 scannedCube += ImageUtil.colorLabel[currentFaceIdx];
                             } else {
-                                scannedCube += ImageUtil.colorLabel[detectedColor[i][j]];
+                                scannedCube += ImageUtil.colorLabel[detectedColor[j][i]];  // hacky idx
                             }
                         }
                     }
@@ -118,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
                     display();
                 } else {
                     // solve
-                    scanReset();
+                    callSolver();
                 }
             }
         });
@@ -137,6 +136,9 @@ public class MainActivity extends AppCompatActivity {
             trainData.put(i, 0, ImageUtil.colorData[i]);
         }
         knn.train(trainData, ROW_SAMPLE, Converters.vector_int_to_Mat(ImageUtil.colorResponse));
+
+        // full initialize solver
+        Search.init();
     }
 
     @Override
@@ -151,6 +153,30 @@ public class MainActivity extends AppCompatActivity {
         // Hide the status bar.
         int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
         decorView.setSystemUiVisibility(uiOptions);
+    }
+
+    private void callSolver() {
+        Log.i(TAG, "Scanned : " + scannedCube);
+        String scrambledCube = ImageUtil.convertCubeAnnotation(scannedCube);
+        Log.i(TAG, "Scrambled : " + scrambledCube);
+        int errorCode = Tools.verify(scrambledCube);
+        if (errorCode == 0) {
+            String result = new Search().solution(scrambledCube, 21, 100000000, 10000, Search.APPEND_LENGTH);
+            Log.i(TAG, "solution : " + result);
+            new MaterialAlertDialogBuilder(MainActivity.this)
+                    .setTitle("Solved!!")
+                    .setMessage(result)
+                    .setPositiveButton("OK", null)
+                    .show();
+        } else {
+            new MaterialAlertDialogBuilder(MainActivity.this)
+                    .setTitle("Invalid Cube")
+                    .setMessage("errorCode : " + errorCode + ", will restart scan.")
+                    .setPositiveButton("OK", null)
+                    .show();
+            Log.e(TAG, "[solver] Invalid cube (errorCode : " + errorCode + ")");
+        }
+        scanReset();
     }
 
     private void scanReset() {
