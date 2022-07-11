@@ -25,16 +25,27 @@ import java.util.List;
 public class Util {
     private static final String TAG = "RubikCubeSolverUtil";
 
-    static final double[][] colorData = new double[][]{
-            new double[]{255, 0, 0, 0},  // R
-            new double[]{0, 255, 0, 0},  // G
-            new double[]{0, 0, 255, 0},  // B
-            new double[]{255, 255, 255, 0},  // W
-            new double[]{255, 255, 0, 0},  // Y
-            new double[]{255, 165, 0, 0}  // O
+    // color definition
+    static final double[][] colorData = {
+            {255, 255, 0, 0},  // Y
+            {255, 165, 0, 0},  // O
+            {0, 255, 0, 0},  // G
+            {255, 255, 255, 0},  // W
+            {255, 0, 0, 0},  // R
+            {0, 0, 255, 0},  // B
     };
-    static final String[] colorLabel = new String[]{"R", "G", "B", "W", "Y", "O"};
+    static final String[] colorLabel = {"Y", "O", "G", "W", "R", "B"};
+    static final String[] colorName = {"Yellow", "Orange", "Green", "White", "Red", "Blue"};
     static final List<Integer> colorResponse = new ArrayList<>(Arrays.asList(0, 1, 2, 3, 4, 5));
+    // top -> left -> down -> right
+    static final String[] arrSideColors = {
+            "BRGO",  // Yellow
+            "YGWB",  // Orange
+            "YRWO",  // Green
+            "GRBO",  // White
+            "YBWG",  // Red
+            "YOBR",  // Blue
+    };
 
     static Mat calcBoxColorAve(Mat mat, int boxX, int boxY, int boxLen) {
         // extract box as sub matrix
@@ -42,7 +53,7 @@ public class Util {
 
         // create mask
         Mat mask = new Mat(boxMat.cols(), boxMat.rows(), CV_8U);
-        mask.setTo( new Scalar( 0.0 ) );
+        mask.setTo(new Scalar(0.0));
         int innerBoxLen = (int) (boxLen * 0.6);
         int innerX = (int) ((boxLen - innerBoxLen) / 2);
         int innerY = (int) ((boxLen - innerBoxLen) / 2);
