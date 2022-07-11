@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class Util {
+public class ImageUtil {
     private static final String TAG = "RubikCubeSolverUtil";
 
     // color definition

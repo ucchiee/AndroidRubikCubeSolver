@@ -116,7 +116,7 @@ public class CubeView extends View {
         String[][] colorsString = {{"", "", ""}, {"", "", ""}, {"", "", ""},};
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
-                colorsString[i][j] = Util.colorLabel[colors[i][j]];
+                colorsString[i][j] = ImageUtil.colorLabel[colors[i][j]];
             }
         }
         setFrontColors(colorsString);
