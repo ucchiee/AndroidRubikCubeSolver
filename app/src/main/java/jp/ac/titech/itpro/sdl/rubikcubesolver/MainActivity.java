@@ -16,7 +16,6 @@ import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
-import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
@@ -33,6 +32,8 @@ import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Surface;
+import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -59,16 +60,34 @@ public class MainActivity extends AppCompatActivity {
     private final String[] REQUIRED_PERMISSIONS = new String[]{"android.permission.CAMERA", "android.permission.WRITE_EXTERNAL_STORAGE"};
 
     /*** Views ***/
-    private PreviewView previewView;
-    private ImageView imageView;
+    protected ImageView imageView;
+    private CubeView cubeView;
+    private Button prevButton;
+    private Button scanButton;
     /*** For CameraX ***/
     private Camera camera = null;
-    private Preview preview = null;
     private ImageAnalysis imageAnalysis = null;
     final private ExecutorService cameraExecutor = Executors.newSingleThreadExecutor();
     /*** For Rubik's Cube Solver ***/
     final private Mat trainData = new Mat(6, 4, CV_32F);
     final private KNearest knn = KNearest.create();
+    /*** For Color Detection ***/
+    /***
+     * Scan Order : Upper(0, Yellow) -> Right(1, Orange) -> Front(2, Green) -> Down(3, White) -> Left(4, Red) -> Back(5, Blue)
+     */
+    final protected int[][] detectedColor = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+    protected String scannedCube = "";
+    protected int currentFaceIdx = 0;
+    final protected String[] scanOrder = {"Y", "O", "G", "W", "R", "B"};
+    // top -> left -> down -> right
+    final protected String[] arrSideColors = {
+            "BRGO",  // Yellow
+            "YGWB",  // Orange
+            "YRWO",  // Green
+            "GRBO",  // White
+            "YBWG",  // Red
+            "YOBR",  // Blue
+    };
 
     static {
         System.loadLibrary("opencv_java4");
@@ -79,8 +98,41 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        previewView = findViewById(R.id.previewView);
         imageView = findViewById(R.id.imageView);
+        cubeView = findViewById(R.id.cubeView);
+        prevButton = findViewById(R.id.prevButton);
+        scanButton = findViewById(R.id.scanButton);
+
+        scanButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.e(TAG, "scan button clicked");
+                synchronized (detectedColor) {
+                    // if (Util.colorLabel[detectedColor[1][1]] != scanOrder[currentFaceIdx]) return;
+                    for (int i = 0; i < 3; i++) {
+                        for (int j = 0; j < 3; j++) {
+                            scannedCube += Util.colorLabel[detectedColor[i][j]];
+                        }
+                    }
+                }
+                if (currentFaceIdx < 5) {
+                    currentFaceIdx++;
+                    display();
+                } else {
+                    // solve
+                    currentFaceIdx = 0;
+                    scannedCube = "";
+                    display();
+                }
+            }
+        });
+        prevButton.setOnClickListener(view -> {
+            assert currentFaceIdx > 0;
+            assert scannedCube.length() == currentFaceIdx * 9;
+            currentFaceIdx--;
+            scannedCube = scannedCube.substring(0, scannedCube.length() - 9);
+            display();
+        });
 
         if (checkPermissions()) {
             startCamera();
@@ -95,6 +147,27 @@ public class MainActivity extends AppCompatActivity {
         knn.train(trainData, ROW_SAMPLE, Converters.vector_int_to_Mat(Util.colorResponse));
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        display();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        View decorView = getWindow().getDecorView();
+        // Hide the status bar.
+        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+        decorView.setSystemUiVisibility(uiOptions);
+    }
+
+    private void display() {
+        prevButton.setEnabled(currentFaceIdx > 0);
+        cubeView.setSideColors(arrSideColors[currentFaceIdx]);
+        cubeView.setFrontColors(detectedColor);
+        cubeView.setCenterColor(scanOrder[currentFaceIdx]);
+    }
+
     private void startCamera() {
         final ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(this);
         Context context = this;
@@ -103,7 +176,6 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 try {
                     ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
-                    preview = new Preview.Builder().build();
                     imageAnalysis = new ImageAnalysis.Builder()
                             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
                             // .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
@@ -113,9 +185,7 @@ public class MainActivity extends AppCompatActivity {
                     CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
 
                     cameraProvider.unbindAll();
-                    preview.setSurfaceProvider(previewView.getSurfaceProvider());
-                    camera = cameraProvider.bindToLifecycle((LifecycleOwner) context, cameraSelector, preview, imageAnalysis);
-                    // preview.setSurfaceProvider(previewView.createSurfaceProvider(camera.getCameraInfo()));
+                    camera = cameraProvider.bindToLifecycle((LifecycleOwner) context, cameraSelector, imageAnalysis);
                 } catch (Exception e) {
                     Log.e(TAG, "[startCamera] Use case binding failed", e);
                 }
@@ -124,15 +194,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private class MyImageAnalyzer implements ImageAnalysis.Analyzer {
-        final private int[][] detectedColor = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
 
         @Override
         public void analyze(@NonNull ImageProxy image) {
             /* Create cv::mat(RGB888) from image(NV21) */
-            Mat matOrg = getMatFromImage(image);
+            Mat mat = Util.getMatFromImage(image);
 
             /* Fix image rotation (it looks image in PreviewView is automatically fixed by CameraX???) */
-            Mat mat = fixMatRotation(matOrg);
+            mat = fixMatRotation(mat);
 
             /* Do some image processing */
             Mat matOutput = new Mat(mat.rows(), mat.cols(), mat.type());
@@ -155,6 +224,9 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
+
+            // update cubeView
+            cubeView.setFrontColors(detectedColor);
 
             // draw frame and detected color
             // drawCubeFrame(matOutput, startX, startY, boxLen, new Scalar(255, 0, 0), 2);
@@ -182,44 +254,9 @@ public class MainActivity extends AppCompatActivity {
             image.close();
         }
 
-        private Mat getMatFromImage(ImageProxy image) {
-            /* Create cv::mat(RGB888) from image(NV21) */
-            /* https://stackoverflow.com/questions/30510928/convert-android-camera2-api-yuv-420-888-to-rgb */
-            if (image.getFormat() == ImageFormat.YUV_420_888) {
-                ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
-                ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
-                ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
-                int ySize = yBuffer.remaining();
-                int uSize = uBuffer.remaining();
-                int vSize = vBuffer.remaining();
-                byte[] nv21 = new byte[ySize + uSize + vSize];
-                yBuffer.get(nv21, 0, ySize);
-                vBuffer.get(nv21, ySize, vSize);
-                uBuffer.get(nv21, ySize + vSize, uSize);
-                Mat yuv = new Mat(image.getHeight() + image.getHeight() / 2, image.getWidth(), CvType.CV_8UC1);
-                yuv.put(0, 0, nv21);
-                Mat mat = new Mat();
-                Imgproc.cvtColor(yuv, mat, Imgproc.COLOR_YUV2RGB_NV21, 3);
-                return mat;
-            } else if (image.getFormat() == PixelFormat.RGBA_8888) {
-                ByteBuffer argbBuffer = image.getPlanes()[0].getBuffer(); // ARGBARGB...
-                int argbSize = argbBuffer.remaining();
-                byte[] argb_buf = new byte[argbSize];
-                argbBuffer.get(argb_buf, 0, argbSize);
-                Mat bgra = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
-                bgra.put(0, 0, argb_buf);
-                Mat rgb = new Mat();
-                Imgproc.cvtColor(bgra, rgb, Imgproc.COLOR_BGRA2BGR);
-                return rgb;
-            }
-            Log.e(TAG, "Unexpected format : " + image.getFormat());
-            assert false;
-            return null;
-        }
-
         private Mat fixMatRotation(Mat matOrg) {
             Mat mat;
-            switch (previewView.getDisplay().getRotation()) {
+            switch (imageView.getDisplay().getRotation()) {
                 default:
                 case Surface.ROTATION_0:
                     mat = new Mat(matOrg.cols(), matOrg.rows(), matOrg.type());
