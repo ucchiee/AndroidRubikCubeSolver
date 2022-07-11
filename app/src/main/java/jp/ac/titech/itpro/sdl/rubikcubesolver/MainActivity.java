@@ -2,12 +2,19 @@ package jp.ac.titech.itpro.sdl.rubikcubesolver;
 
 import static org.opencv.core.CvType.CV_32F;
 import static org.opencv.ml.Ml.ROW_SAMPLE;
-
-import org.opencv.core.MatOfDouble;
-import org.opencv.utils.Converters;
-
 import static java.lang.Math.max;
 import static java.lang.Math.min;
+
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.Surface;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,39 +24,23 @@ import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.lifecycle.ProcessCameraProvider;
-import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwner;
 
-// import android.Manifest;
-// import android.app.Activity;
-import android.content.Context;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.ImageFormat;
-import android.graphics.PixelFormat;
-import android.os.Bundle;
-import android.util.Log;
-import android.view.Surface;
-import android.view.View;
-import android.widget.Button;
-import android.widget.ImageView;
-
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.ml.KNearest;
-import org.opencv.ml.TrainData;
+import org.opencv.utils.Converters;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -78,16 +69,6 @@ public class MainActivity extends AppCompatActivity {
     final protected int[][] detectedColor = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
     protected String scannedCube = "";
     protected int currentFaceIdx = 0;
-    final protected String[] scanOrder = {"Y", "O", "G", "W", "R", "B"};
-    // top -> left -> down -> right
-    final protected String[] arrSideColors = {
-            "BRGO",  // Yellow
-            "YGWB",  // Orange
-            "YRWO",  // Green
-            "GRBO",  // White
-            "YBWG",  // Red
-            "YOBR",  // Blue
-    };
 
     static {
         System.loadLibrary("opencv_java4");
@@ -107,12 +88,29 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Log.e(TAG, "scan button clicked");
+                // read detectedColor
                 synchronized (detectedColor) {
-                    // if (Util.colorLabel[detectedColor[1][1]] != scanOrder[currentFaceIdx]) return;
                     for (int i = 0; i < 3; i++) {
                         for (int j = 0; j < 3; j++) {
-                            scannedCube += Util.colorLabel[detectedColor[i][j]];
+                            if (i == 1 && j == 1) {
+                                scannedCube += Util.colorLabel[currentFaceIdx];
+                            } else {
+                                scannedCube += Util.colorLabel[detectedColor[i][j]];
+                            }
                         }
+                    }
+                    if (detectedColor[1][1] != currentFaceIdx) {
+                        new MaterialAlertDialogBuilder(MainActivity.this)
+                                .setTitle("Right Face?")
+                                .setMessage("Center color should be, " + Util.colorName[currentFaceIdx] + ", instead of " + Util.colorName[detectedColor[1][1]])
+                                .setNegativeButton("RESCAN", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialogInterface, int i) {
+                                        scanRollback();
+                                    }
+                                })
+                                .setPositiveButton("YES", null)
+                                .show();
                     }
                 }
                 if (currentFaceIdx < 5) {
@@ -120,18 +118,12 @@ public class MainActivity extends AppCompatActivity {
                     display();
                 } else {
                     // solve
-                    currentFaceIdx = 0;
-                    scannedCube = "";
-                    display();
+                    scanReset();
                 }
             }
         });
         prevButton.setOnClickListener(view -> {
-            assert currentFaceIdx > 0;
-            assert scannedCube.length() == currentFaceIdx * 9;
-            currentFaceIdx--;
-            scannedCube = scannedCube.substring(0, scannedCube.length() - 9);
-            display();
+            scanRollback();
         });
 
         if (checkPermissions()) {
@@ -161,11 +153,25 @@ public class MainActivity extends AppCompatActivity {
         decorView.setSystemUiVisibility(uiOptions);
     }
 
+    private void scanReset() {
+        currentFaceIdx = 0;
+        scannedCube = "";
+        display();
+    }
+
+    private void scanRollback() {
+        assert currentFaceIdx > 0;
+        assert scannedCube.length() == currentFaceIdx * 9;
+        currentFaceIdx--;
+        scannedCube = scannedCube.substring(0, scannedCube.length() - 9);
+        display();
+    }
+
     private void display() {
         prevButton.setEnabled(currentFaceIdx > 0);
-        cubeView.setSideColors(arrSideColors[currentFaceIdx]);
+        cubeView.setSideColors(Util.arrSideColors[currentFaceIdx]);
         cubeView.setFrontColors(detectedColor);
-        cubeView.setCenterColor(scanOrder[currentFaceIdx]);
+        cubeView.setCenterColor(Util.colorLabel[currentFaceIdx]);
     }
 
     private void startCamera() {
