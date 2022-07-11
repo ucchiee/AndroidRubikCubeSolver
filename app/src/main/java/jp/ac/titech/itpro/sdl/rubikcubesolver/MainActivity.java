@@ -145,6 +145,14 @@ public class MainActivity extends AppCompatActivity {
         display();
     }
 
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        View decorView = getWindow().getDecorView();
+        // Hide the status bar.
+        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+        decorView.setSystemUiVisibility(uiOptions);
+    }
+
     private void display() {
         prevButton.setEnabled(currentFaceIdx > 0);
         nextButton.setEnabled(currentFaceIdx < 5);
