@@ -2,5 +2,4 @@
     <string name="app_name">RubikCubeSolver</string>
     <string name="prev_btn_name">PREV</string>
     <string name="scan_btn_name">SCAN</string>
-    <string name="next_btn_name">NEXT</string>
 </resources>
