@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">RubikCubeSolver</string>
-    <string name="prev_btn_name">PREV</string>
+    <string name="reset_btn_name">RESET</string>
     <string name="scan_btn_name">SCAN</string>
     <!-- solved dialog -->
     <string name="solved_dialog_title">Solved!!</string>

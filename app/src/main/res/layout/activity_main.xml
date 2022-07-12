@@ -25,10 +25,10 @@
         app:layout_constraintTop_toBottomOf="@id/imageView" />
 
     <Button
-        android:id="@+id/prevButton"
+        android:id="@+id/resetButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/prev_btn_name"
+        android:text="@string/reset_btn_name"
         android:textSize="@dimen/button_text_size"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@id/scanButton"
@@ -43,7 +43,7 @@
         android:textSize="@dimen/button_text_size"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/prevButton"
+        app:layout_constraintStart_toEndOf="@id/resetButton"
         app:layout_constraintTop_toBottomOf="@id/cubeView" />
 
 

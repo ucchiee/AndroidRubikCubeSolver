@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     /*** Views ***/
     protected ImageView imageView;
     private CubeView cubeView;
-    private Button prevButton;
+    private Button resetButton;
     private Button scanButton;
     /*** For CameraX ***/
     private Camera camera = null;
@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
 
         imageView = findViewById(R.id.imageView);
         cubeView = findViewById(R.id.cubeView);
-        prevButton = findViewById(R.id.prevButton);
+        resetButton = findViewById(R.id.resetButton);
         scanButton = findViewById(R.id.scanButton);
 
         scanButton.setOnClickListener(new View.OnClickListener() {
@@ -121,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-        prevButton.setOnClickListener(view -> scanRollback());
+        resetButton.setOnClickListener(view -> scanReset());
 
         if (checkPermissions()) {
             startCamera();
@@ -194,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void display() {
-        prevButton.setEnabled(currentFaceIdx > 0);
+        resetButton.setEnabled(currentFaceIdx > 0);
         cubeView.setSideColors(ImageUtil.arrSideColors[currentFaceIdx]);
         cubeView.setFrontColors(detectedColor);
         cubeView.setCenterColor(ImageUtil.colorLabel[currentFaceIdx]);
