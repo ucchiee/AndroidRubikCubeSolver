@@ -15,6 +15,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.AspectRatio;
@@ -52,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
     /*** Views ***/
     protected ImageView imageView;
     private CubeView cubeView;
-    private Button prevButton;
+    private Button resetButton;
     private Button scanButton;
     /*** For CameraX ***/
     private Camera camera = null;
@@ -61,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
     /*** For Rubik's Cube Solver ***/
     final private Mat trainData = new Mat(6, 4, CV_32F);
     final private KNearest knn = KNearest.create();
-    /*** For Color Detection ***/
+    /* For Color Detection ***/
     /***
      * Scan Order : Upper(0, Yellow) -> Right(1, Orange) -> Front(2, Green) -> Down(3, White) -> Left(4, Red) -> Back(5, Blue)
      */
@@ -80,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
 
         imageView = findViewById(R.id.imageView);
         cubeView = findViewById(R.id.cubeView);
-        prevButton = findViewById(R.id.prevButton);
+        resetButton = findViewById(R.id.resetButton);
         scanButton = findViewById(R.id.scanButton);
 
         scanButton.setOnClickListener(new View.OnClickListener() {
@@ -121,7 +122,23 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-        prevButton.setOnClickListener(view -> scanRollback());
+        OnBackPressedCallback callback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (currentFaceIdx > 0) {
+                    scanRollback();
+                } else {
+                    new MaterialAlertDialogBuilder(MainActivity.this)
+                            .setTitle("Confirm")
+                            .setMessage("Is it OK to finish this app?")
+                            .setPositiveButton("Finish", (dialog, i) -> finish())
+                            .setNegativeButton("Stay", (dialog, i) -> dialog.dismiss())
+                            .show();
+                }
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(this, callback);
+        resetButton.setOnClickListener(view -> scanReset());
 
         if (checkPermissions()) {
             startCamera();
@@ -194,7 +211,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void display() {
-        prevButton.setEnabled(currentFaceIdx > 0);
+        resetButton.setEnabled(currentFaceIdx > 0);
         cubeView.setSideColors(ImageUtil.arrSideColors[currentFaceIdx]);
         cubeView.setFrontColors(detectedColor);
         cubeView.setCenterColor(ImageUtil.colorLabel[currentFaceIdx]);
