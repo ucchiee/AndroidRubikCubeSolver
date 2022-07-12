@@ -92,17 +92,17 @@ public class CubeView extends View {
         assert color.length() == 1;
         switch (color) {
             case "Y":
-                return Color.YELLOW;
+                return Color.rgb(255, 215, 0);
             case "W":
-                return Color.WHITE;
+                return Color.rgb(255, 255, 255);
             case "O":
-                return Color.rgb(255, 165, 0);
+                return Color.rgb(254, 80, 0);
             case "R":
-                return Color.RED;
+                return Color.rgb(186, 23, 47);
             case "B":
-                return Color.BLUE;
+                return Color.rgb(0, 61, 165);
             case "G":
-                return Color.GREEN;
+                return Color.rgb(0, 154, 68);
             default:
                 return Color.DKGRAY;
         }
