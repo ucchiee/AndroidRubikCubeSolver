@@ -7,7 +7,7 @@
     <string name="solved_dialog_msg_prefix">Top : Yellow, Front : Green.</string>
     <string name="solved_dialog_positive">OK</string>
     <!-- invalid cube dialog -->
-    <string name="invalid_dialog_title">Invalid Cube...</string>
+    <string name="invalid_dialog_title">Invalid Cube…</string>
     <string name="invalid_dialog_positive">RESET</string>
     <string name="invalid_dialog_neutral">FIX</string>
     <!-- Right Face? dialog-->
