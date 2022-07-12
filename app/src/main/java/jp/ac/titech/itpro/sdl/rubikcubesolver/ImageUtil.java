@@ -27,12 +27,12 @@ public class ImageUtil {
 
     // color definition
     static final double[][] colorData = {
-            {255, 255, 0, 0},  // Y
-            {255, 165, 0, 0},  // O
-            {0, 255, 0, 0},  // G
+            {255, 215, 0, 0},    // Y
+            {254, 80, 0, 0},     // O
+            {0, 154, 68, 0},     // G
             {255, 255, 255, 0},  // W
-            {255, 0, 0, 0},  // R
-            {0, 0, 255, 0},  // B
+            {186, 23, 47, 0},    // R
+            {0, 61, 165, 0},     // B
     };
     static final String[] colorLabel = {"Y", "O", "G", "W", "R", "B"};
     static final String[] colorName = {"Yellow", "Orange", "Green", "White", "Red", "Blue"};
