@@ -87,29 +87,28 @@ public class MainActivity extends AppCompatActivity {
         scanButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Log.e(TAG, "scan button clicked");
                 // read detectedColor
                 synchronized (detectedColor) {
                     for (int i = 0; i < 3; i++) {
                         for (int j = 0; j < 3; j++) {
                             if (i == 1 && j == 1) {
-                                scannedCube += Util.colorLabel[currentFaceIdx];
+                                scannedCube += ImageUtil.colorLabel[currentFaceIdx];
                             } else {
-                                scannedCube += Util.colorLabel[detectedColor[i][j]];
+                                scannedCube += ImageUtil.colorLabel[detectedColor[j][i]];  // hacky idx
                             }
                         }
                     }
                     if (detectedColor[1][1] != currentFaceIdx) {
                         new MaterialAlertDialogBuilder(MainActivity.this)
-                                .setTitle("Right Face?")
-                                .setMessage("Center color should be, " + Util.colorName[currentFaceIdx] + ", instead of " + Util.colorName[detectedColor[1][1]])
-                                .setNegativeButton("RESCAN", new DialogInterface.OnClickListener() {
+                                .setTitle(R.string.right_face_dialog_title)
+                                .setMessage("Center color should be " + ImageUtil.colorName[currentFaceIdx] + ", instead of " + ImageUtil.colorName[detectedColor[1][1]] + ".")
+                                .setNegativeButton(R.string.right_face_dialog_negative, new DialogInterface.OnClickListener() {
                                     @Override
                                     public void onClick(DialogInterface dialogInterface, int i) {
                                         scanRollback();
                                     }
                                 })
-                                .setPositiveButton("YES", null)
+                                .setPositiveButton(R.string.right_face_dialog_positive, null)
                                 .show();
                     }
                 }
@@ -118,7 +117,8 @@ public class MainActivity extends AppCompatActivity {
                     display();
                 } else {
                     // solve
-                    scanReset();
+                    currentFaceIdx++;
+                    callSolver();
                 }
             }
         });
@@ -134,9 +134,12 @@ public class MainActivity extends AppCompatActivity {
 
         // prepare K-nearest neighbor
         for (int i = 0; i < 6; i++) {
-            trainData.put(i, 0, Util.colorData[i]);
+            trainData.put(i, 0, ImageUtil.colorData[i]);
         }
-        knn.train(trainData, ROW_SAMPLE, Converters.vector_int_to_Mat(Util.colorResponse));
+        knn.train(trainData, ROW_SAMPLE, Converters.vector_int_to_Mat(ImageUtil.colorResponse));
+
+        // full initialize solver
+        Search.init();
     }
 
     @Override
@@ -151,6 +154,32 @@ public class MainActivity extends AppCompatActivity {
         // Hide the status bar.
         int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
         decorView.setSystemUiVisibility(uiOptions);
+    }
+
+    private void callSolver() {
+        Log.i(TAG, "Scanned : " + scannedCube);
+        String scrambledCube = ImageUtil.convertCubeAnnotation(scannedCube);
+        Log.i(TAG, "Scrambled : " + scrambledCube);
+        int errorCode = Tools.verify(scrambledCube);
+        if (errorCode == 0) {
+            String result = new Search().solution(scrambledCube, 21, 100000000, 10000, Search.APPEND_LENGTH);
+            Log.i(TAG, "solution : " + result);
+            new MaterialAlertDialogBuilder(MainActivity.this)
+                    .setTitle(R.string.solved_dialog_title)
+                    .setMessage(getString(R.string.solved_dialog_msg_prefix) + "\n" + result)
+                    .setPositiveButton(R.string.solved_dialog_positive, null)
+                    .show();
+            scanReset();
+        } else {
+            int msgIdx = (errorCode * -1) - 1;
+            new MaterialAlertDialogBuilder(MainActivity.this)
+                    .setTitle(R.string.invalid_dialog_title)
+                    .setMessage("errorCode : " + errorCode + "\n" + ImageUtil.verifyMsg[msgIdx])
+                    .setPositiveButton(R.string.invalid_dialog_positive, (dialog, i) -> scanReset())
+                    .setNeutralButton(R.string.invalid_dialog_neutral, null)
+                    .show();
+            Log.e(TAG, "[solver] Invalid cube (errorCode : " + errorCode + ")");
+        }
     }
 
     private void scanReset() {
@@ -169,9 +198,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void display() {
         prevButton.setEnabled(currentFaceIdx > 0);
-        cubeView.setSideColors(Util.arrSideColors[currentFaceIdx]);
+        cubeView.setSideColors(ImageUtil.arrSideColors[currentFaceIdx]);
         cubeView.setFrontColors(detectedColor);
-        cubeView.setCenterColor(Util.colorLabel[currentFaceIdx]);
+        cubeView.setCenterColor(ImageUtil.colorLabel[currentFaceIdx]);
     }
 
     private void startCamera() {
@@ -204,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void analyze(@NonNull ImageProxy image) {
             /* Create cv::mat(RGB888) from image(NV21) */
-            Mat mat = Util.getMatFromImage(image);
+            Mat mat = ImageUtil.getMatFromImage(image);
 
             /* Fix image rotation (it looks image in PreviewView is automatically fixed by CameraX???) */
             mat = fixMatRotation(mat);
@@ -223,7 +252,7 @@ public class MainActivity extends AppCompatActivity {
             synchronized (detectedColor) {
                 for (int i = 0; i < 3; i++) {
                     for (int j = 0; j < 3; j++) {
-                        Mat color = Util.calcBoxColorAve(mat, startX + boxLen * i, startY + boxLen * j, boxLen);
+                        Mat color = ImageUtil.calcBoxColorAve(mat, startX + boxLen * i, startY + boxLen * j, boxLen);
                         Mat res = new Mat();
                         knn.findNearest(color, 1, res);
                         detectedColor[i][j] = (int) res.get(0, 0)[0];
@@ -238,7 +267,7 @@ public class MainActivity extends AppCompatActivity {
             // drawCubeFrame(matOutput, startX, startY, boxLen, new Scalar(255, 0, 0), 2);
             for (int i = 0; i < 3; i++) {
                 for (int j = 0; j < 3; j++) {
-                    Imgproc.putText(matOutput, Util.colorLabel[detectedColor[i][j]], new Point(startX + boxLen * i, startY + boxLen * (j + 1)), 2, 3, new Scalar(Util.colorData[detectedColor[i][j]]));
+                    Imgproc.putText(matOutput, ImageUtil.colorLabel[detectedColor[i][j]], new Point(startX + boxLen * i, startY + boxLen * (j + 1)), 2, 3, new Scalar(ImageUtil.colorData[detectedColor[i][j]]));
                     Imgproc.rectangle(matOutput, new Rect(startX + boxLen * i, startY + boxLen * j, boxLen, boxLen), new Scalar(255, 0, 0), 2);
                     Log.v(TAG, "[analyze] (" + i + ", " + j + ") = " + detectedColor[i][j]);
                 }
