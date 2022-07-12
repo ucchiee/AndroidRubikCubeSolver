@@ -2,7 +2,6 @@ package jp.ac.titech.itpro.sdl.rubikcubesolver;
 
 import static org.opencv.core.CvType.CV_32F;
 import static org.opencv.ml.Ml.ROW_SAMPLE;
-import static java.lang.Math.max;
 import static java.lang.Math.min;
 
 import android.content.Context;
@@ -122,9 +121,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-        prevButton.setOnClickListener(view -> {
-            scanRollback();
-        });
+        prevButton.setOnClickListener(view -> scanRollback());
 
         if (checkPermissions()) {
             startCamera();
@@ -264,7 +261,6 @@ public class MainActivity extends AppCompatActivity {
             cubeView.setFrontColors(detectedColor);
 
             // draw frame and detected color
-            // drawCubeFrame(matOutput, startX, startY, boxLen, new Scalar(255, 0, 0), 2);
             for (int i = 0; i < 3; i++) {
                 for (int j = 0; j < 3; j++) {
                     Imgproc.putText(matOutput, ImageUtil.colorLabel[detectedColor[i][j]], new Point(startX + boxLen * i, startY + boxLen * (j + 1)), 2, 3, new Scalar(ImageUtil.colorData[detectedColor[i][j]]));
