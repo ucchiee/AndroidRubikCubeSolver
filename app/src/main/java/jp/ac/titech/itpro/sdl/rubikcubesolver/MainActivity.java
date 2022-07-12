@@ -101,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
                     if (detectedColor[1][1] != currentFaceIdx) {
                         new MaterialAlertDialogBuilder(MainActivity.this)
                                 .setTitle(R.string.right_face_dialog_title)
-                                .setMessage("Center color should be " + ImageUtil.colorName[currentFaceIdx] + ", instead of " + ImageUtil.colorName[detectedColor[1][1]])
+                                .setMessage("Center color should be " + ImageUtil.colorName[currentFaceIdx] + ", instead of " + ImageUtil.colorName[detectedColor[1][1]] + ".")
                                 .setNegativeButton(R.string.right_face_dialog_negative, new DialogInterface.OnClickListener() {
                                     @Override
                                     public void onClick(DialogInterface dialogInterface, int i) {

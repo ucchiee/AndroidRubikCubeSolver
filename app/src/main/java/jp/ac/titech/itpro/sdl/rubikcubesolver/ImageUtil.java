@@ -49,12 +49,12 @@ public class ImageUtil {
 
     // Error Message
     static final String[] verifyMsg = {
-            "There is not exactly one facelet of each color",               // -1
-            "Not all 12 edges exist exactly once",                          // -2
-            "Flip error: One edge has to be flipped",                       // -3
-            "Not all 8 corners exist exactly once",                         // -4
-            "Twist error: One corner has to be twisted",                    // -5
-            "Parity error: Two corners or two edges have to be exchanged",  // -6
+            "There is not exactly one facelet of each color.",               // -1
+            "Not all 12 edges exist exactly once.",                          // -2
+            "Flip error: One edge has to be flipped.",                       // -3
+            "Not all 8 corners exist exactly once.",                         // -4
+            "Twist error: One corner has to be twisted.",                    // -5
+            "Parity error: Two corners or two edges have to be exchanged.",  // -6
     };
 
     static String convertCubeAnnotation(String scannedCube) {
