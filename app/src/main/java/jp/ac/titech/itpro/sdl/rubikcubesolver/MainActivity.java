@@ -100,15 +100,15 @@ public class MainActivity extends AppCompatActivity {
                     }
                     if (detectedColor[1][1] != currentFaceIdx) {
                         new MaterialAlertDialogBuilder(MainActivity.this)
-                                .setTitle("Right Face?")
-                                .setMessage("Center color should be, " + ImageUtil.colorName[currentFaceIdx] + ", instead of " + ImageUtil.colorName[detectedColor[1][1]])
-                                .setNegativeButton("RESCAN", new DialogInterface.OnClickListener() {
+                                .setTitle(R.string.right_face_dialog_title)
+                                .setMessage("Center color should be " + ImageUtil.colorName[currentFaceIdx] + ", instead of " + ImageUtil.colorName[detectedColor[1][1]])
+                                .setNegativeButton(R.string.right_face_dialog_negative, new DialogInterface.OnClickListener() {
                                     @Override
                                     public void onClick(DialogInterface dialogInterface, int i) {
                                         scanRollback();
                                     }
                                 })
-                                .setPositiveButton("YES", null)
+                                .setPositiveButton(R.string.right_face_dialog_positive, null)
                                 .show();
                     }
                 }
@@ -117,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
                     display();
                 } else {
                     // solve
+                    currentFaceIdx++;
                     callSolver();
                 }
             }
@@ -164,19 +165,21 @@ public class MainActivity extends AppCompatActivity {
             String result = new Search().solution(scrambledCube, 21, 100000000, 10000, Search.APPEND_LENGTH);
             Log.i(TAG, "solution : " + result);
             new MaterialAlertDialogBuilder(MainActivity.this)
-                    .setTitle("Solved!!")
-                    .setMessage(result)
-                    .setPositiveButton("OK", null)
+                    .setTitle(R.string.solved_dialog_title)
+                    .setMessage(getString(R.string.solved_dialog_msg_prefix) + "\n" + result)
+                    .setPositiveButton(R.string.solved_dialog_positive, null)
                     .show();
+            scanReset();
         } else {
+            int msgIdx = (errorCode * -1) - 1;
             new MaterialAlertDialogBuilder(MainActivity.this)
-                    .setTitle("Invalid Cube")
-                    .setMessage("errorCode : " + errorCode + ", will restart scan.")
-                    .setPositiveButton("OK", null)
+                    .setTitle(R.string.invalid_dialog_title)
+                    .setMessage("errorCode : " + errorCode + "\n" + ImageUtil.verifyMsg[msgIdx])
+                    .setPositiveButton(R.string.invalid_dialog_positive, (dialog, i) -> scanReset())
+                    .setNeutralButton(R.string.invalid_dialog_neutral, null)
                     .show();
             Log.e(TAG, "[solver] Invalid cube (errorCode : " + errorCode + ")");
         }
-        scanReset();
     }
 
     private void scanReset() {

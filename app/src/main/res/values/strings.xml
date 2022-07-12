@@ -2,4 +2,16 @@
     <string name="app_name">RubikCubeSolver</string>
     <string name="prev_btn_name">PREV</string>
     <string name="scan_btn_name">SCAN</string>
+    <!-- solved dialog -->
+    <string name="solved_dialog_title">Solved!!</string>
+    <string name="solved_dialog_msg_prefix">Top : Yellow, Front : Green.</string>
+    <string name="solved_dialog_positive">OK</string>
+    <!-- invalid cube dialog -->
+    <string name="invalid_dialog_title">Invalid Cube...</string>
+    <string name="invalid_dialog_positive">RESET</string>
+    <string name="invalid_dialog_neutral">FIX</string>
+    <!-- Right Face? dialog-->
+    <string name="right_face_dialog_title">Right Face?</string>
+    <string name="right_face_dialog_negative">RESCAN</string>
+    <string name="right_face_dialog_positive">YES</string>
 </resources>
