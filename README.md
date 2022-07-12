@@ -1,4 +1,4 @@
-# rubik-cube-solver
+# Android Rubik's Cube Solver
 
 This Android application aims to solve Rubik's Cube using camera.
 Current application image is:
