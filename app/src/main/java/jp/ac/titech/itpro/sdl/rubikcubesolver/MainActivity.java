@@ -2,7 +2,6 @@ package jp.ac.titech.itpro.sdl.rubikcubesolver;
 
 import static org.opencv.core.CvType.CV_32F;
 import static org.opencv.ml.Ml.ROW_SAMPLE;
-import static java.lang.Math.max;
 import static java.lang.Math.min;
 
 import android.content.Context;
@@ -122,9 +121,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-        prevButton.setOnClickListener(view -> {
-            scanRollback();
-        });
+        prevButton.setOnClickListener(view -> scanRollback());
 
         if (checkPermissions()) {
             startCamera();
@@ -237,16 +234,17 @@ public class MainActivity extends AppCompatActivity {
 
             /* Fix image rotation (it looks image in PreviewView is automatically fixed by CameraX???) */
             mat = fixMatRotation(mat);
+            int h = mat.rows(), w = mat.cols();
 
             /* Do some image processing */
             Mat matOutput = new Mat(mat.rows(), mat.cols(), mat.type());
             mat.copyTo(matOutput);
 
             // calculate box point
-            double cubeLen = min(image.getWidth(), image.getHeight()) * 0.8;
+            double cubeLen = min(h, w) * 0.8;
             int boxLen = (int) (cubeLen / 3);
-            int startX = (int) ((min(image.getWidth(), image.getHeight()) - cubeLen) / 2);
-            int startY = (int) (max(image.getHeight(), image.getWidth()) * 0.2);
+            int startX = (int) (w - cubeLen) / 2;
+            int startY = (int) (h - cubeLen) / 2;
 
             // detect color of each box
             synchronized (detectedColor) {
@@ -264,13 +262,24 @@ public class MainActivity extends AppCompatActivity {
             cubeView.setFrontColors(detectedColor);
 
             // draw frame and detected color
-            // drawCubeFrame(matOutput, startX, startY, boxLen, new Scalar(255, 0, 0), 2);
             for (int i = 0; i < 3; i++) {
                 for (int j = 0; j < 3; j++) {
                     Imgproc.putText(matOutput, ImageUtil.colorLabel[detectedColor[i][j]], new Point(startX + boxLen * i, startY + boxLen * (j + 1)), 2, 3, new Scalar(ImageUtil.colorData[detectedColor[i][j]]));
                     Imgproc.rectangle(matOutput, new Rect(startX + boxLen * i, startY + boxLen * j, boxLen, boxLen), new Scalar(255, 0, 0), 2);
                     Log.v(TAG, "[analyze] (" + i + ", " + j + ") = " + detectedColor[i][j]);
                 }
+            }
+
+            // make output preview square
+            Log.v(TAG, "height : " + h + ", width : " + w);
+            if (h > w) {
+                int bitmapStartX = 0;
+                int bitmapStartY = startY - startX;
+                matOutput = matOutput.submat(new Rect(bitmapStartX, bitmapStartY, w, w));
+            } else {
+                int bitmapStartY = 0;
+                int bitmapStartX = startX - startY;
+                matOutput = matOutput.submat(new Rect(bitmapStartX, bitmapStartY, h, h));
             }
 
             /* Convert cv::mat to bitmap for drawing */
