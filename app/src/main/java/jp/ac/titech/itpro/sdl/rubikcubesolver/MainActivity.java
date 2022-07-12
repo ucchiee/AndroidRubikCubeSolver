@@ -15,6 +15,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.AspectRatio;
@@ -61,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
     /*** For Rubik's Cube Solver ***/
     final private Mat trainData = new Mat(6, 4, CV_32F);
     final private KNearest knn = KNearest.create();
-    /*** For Color Detection ***/
+    /* For Color Detection ***/
     /***
      * Scan Order : Upper(0, Yellow) -> Right(1, Orange) -> Front(2, Green) -> Down(3, White) -> Left(4, Red) -> Back(5, Blue)
      */
@@ -121,6 +122,22 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+        OnBackPressedCallback callback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (currentFaceIdx > 0) {
+                    scanRollback();
+                } else {
+                    new MaterialAlertDialogBuilder(MainActivity.this)
+                            .setTitle("Confirm")
+                            .setMessage("Is it OK to finish this app?")
+                            .setPositiveButton("Finish", (dialog, i) -> finish())
+                            .setNegativeButton("Stay", (dialog, i) -> dialog.dismiss())
+                            .show();
+                }
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(this, callback);
         resetButton.setOnClickListener(view -> scanReset());
 
         if (checkPermissions()) {
