@@ -8,6 +8,7 @@ import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
 import androidx.camera.core.ImageProxy;
 
 import org.opencv.core.Core;
@@ -84,6 +85,19 @@ public class ImageUtil {
             ret.put(0, i, mean.val[i]);
         }
         Log.v(TAG, "mean(matrix) : " + ret.dump());
+        return ret;
+    }
+
+    static Mat calcMovingAveColor(@Nullable Mat matPrev, Mat matCurrent, float alpha) {
+        if (matPrev == null) {
+            return matCurrent;
+        }
+        assert matPrev.rows() == matCurrent.rows();
+        assert matPrev.cols() == matCurrent.cols();
+        Mat ret = new Mat(matPrev.rows(), matPrev.cols(), CV_32F);
+        for (int i = 0; i < matPrev.cols(); i++) {
+            ret.put(0, i, matPrev.get(0, i)[0] * alpha + matCurrent.get(0, i)[0] * (1 - alpha));
+        }
         return ret;
     }
 
