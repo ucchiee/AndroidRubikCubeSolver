@@ -29,6 +29,7 @@ import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwner;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.opencv.android.Utils;
@@ -51,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private final String[] REQUIRED_PERMISSIONS = new String[]{"android.permission.CAMERA", "android.permission.WRITE_EXTERNAL_STORAGE"};
 
     /*** Views ***/
+    protected LinearProgressIndicator scanIndicator;
     protected ImageView imageView;
     private CubeView cubeView;
     private Button resetButton;
@@ -81,10 +83,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        scanIndicator = findViewById(R.id.scanIndicator);
         imageView = findViewById(R.id.imageView);
         cubeView = findViewById(R.id.cubeView);
         resetButton = findViewById(R.id.resetButton);
         scanButton = findViewById(R.id.scanButton);
+
+        scanIndicator.show();
+        updateIndicator();
 
         scanButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -120,6 +126,7 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     // solve
                     currentFaceIdx++;
+                    updateIndicator();
                     new Thread(() -> callSolver()).start();
                 }
             }
@@ -223,6 +230,11 @@ public class MainActivity extends AppCompatActivity {
         cubeView.setSideColors(ImageUtil.arrSideColors[currentFaceIdx]);
         cubeView.setFrontColors(detectedColor);
         cubeView.setCenterColor(ImageUtil.colorLabel[currentFaceIdx]);
+        updateIndicator();
+    }
+
+    private void updateIndicator() {
+        scanIndicator.setProgress((int)(100 / 6) * currentFaceIdx, true);
     }
 
     private void startCamera() {
