@@ -120,9 +120,7 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     // solve
                     currentFaceIdx++;
-                    enableButtons();
                     new Thread(() -> callSolver()).start();
-                    disableButtons();
                 }
             }
         });
@@ -175,6 +173,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void callSolver() {
+        runOnUiThread(() -> disableButtons());
         Log.i(TAG, "Scanned : " + scannedCube);
         String scrambledCube = ImageUtil.convertCubeAnnotation(scannedCube);
         Log.i(TAG, "Scrambled : " + scrambledCube);
@@ -202,6 +201,7 @@ public class MainActivity extends AppCompatActivity {
             });
             Log.e(TAG, "[solver] Invalid cube (errorCode : " + errorCode + ")");
         }
+        runOnUiThread(() -> enableButtons());
     }
 
     private void scanReset() {
