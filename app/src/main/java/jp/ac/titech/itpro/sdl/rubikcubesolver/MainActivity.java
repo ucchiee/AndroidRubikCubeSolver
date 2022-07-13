@@ -67,6 +67,8 @@ public class MainActivity extends AppCompatActivity {
      * Scan Order : Upper(0, Yellow) -> Right(1, Orange) -> Front(2, Green) -> Down(3, White) -> Left(4, Red) -> Back(5, Blue)
      */
     final protected int[][] detectedColor = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+    final protected Mat[][] aveColor = {{null, null, null}, {null, null, null}, {null, null, null}};
+    private static final float alpha = 0.75f;
     protected String scannedCube = "";
     protected int currentFaceIdx = 0;
 
@@ -268,6 +270,8 @@ public class MainActivity extends AppCompatActivity {
                 for (int i = 0; i < 3; i++) {
                     for (int j = 0; j < 3; j++) {
                         Mat color = ImageUtil.calcBoxColorAve(mat, startX + boxLen * i, startY + boxLen * j, boxLen);
+                        color = ImageUtil.calcMovingAveColor(aveColor[i][j], color, alpha);
+                        aveColor[i][j] = color;
                         Mat res = new Mat();
                         knn.findNearest(color, 1, res);
                         detectedColor[i][j] = (int) res.get(0, 0)[0];
