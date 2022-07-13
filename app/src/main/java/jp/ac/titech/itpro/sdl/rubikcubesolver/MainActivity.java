@@ -120,7 +120,9 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     // solve
                     currentFaceIdx++;
-                    callSolver();
+                    enableButtons();
+                    new Thread(() -> callSolver()).start();
+                    disableButtons();
                 }
             }
         });
@@ -180,20 +182,24 @@ public class MainActivity extends AppCompatActivity {
         if (errorCode == 0) {
             String result = new Search().solution(scrambledCube, 21, 100000000, 10000, Search.APPEND_LENGTH);
             Log.i(TAG, "solution : " + result);
-            new MaterialAlertDialogBuilder(MainActivity.this)
-                    .setTitle(R.string.solved_dialog_title)
-                    .setMessage(getString(R.string.solved_dialog_msg_prefix) + "\n" + result)
-                    .setPositiveButton(R.string.solved_dialog_positive, null)
-                    .show();
-            scanReset();
+            runOnUiThread(() -> {
+                new MaterialAlertDialogBuilder(MainActivity.this)
+                        .setTitle(R.string.solved_dialog_title)
+                        .setMessage(getString(R.string.solved_dialog_msg_prefix) + "\n" + result)
+                        .setPositiveButton(R.string.solved_dialog_positive, null)
+                        .show();
+                scanReset();
+            });
         } else {
             int msgIdx = (errorCode * -1) - 1;
-            new MaterialAlertDialogBuilder(MainActivity.this)
-                    .setTitle(R.string.invalid_dialog_title)
-                    .setMessage("errorCode : " + errorCode + "\n" + ImageUtil.verifyMsg[msgIdx])
-                    .setPositiveButton(R.string.invalid_dialog_positive, (dialog, i) -> scanReset())
-                    .setNeutralButton(R.string.invalid_dialog_neutral, null)
-                    .show();
+            runOnUiThread(() -> {
+                new MaterialAlertDialogBuilder(MainActivity.this)
+                        .setTitle(R.string.invalid_dialog_title)
+                        .setMessage("errorCode : " + errorCode + "\n" + ImageUtil.verifyMsg[msgIdx])
+                        .setPositiveButton(R.string.invalid_dialog_positive, (dialog, i) -> scanReset())
+                        .setNeutralButton(R.string.invalid_dialog_neutral, (dialog, i) -> scanRollback())
+                        .show();
+            });
             Log.e(TAG, "[solver] Invalid cube (errorCode : " + errorCode + ")");
         }
     }
@@ -242,6 +248,16 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }, ContextCompat.getMainExecutor(this));
+    }
+
+    private void enableButtons() {
+        resetButton.setEnabled(true);
+        scanButton.setEnabled(true);
+    }
+
+    private void disableButtons() {
+        resetButton.setEnabled(false);
+        scanButton.setEnabled(false);
     }
 
     private class MyImageAnalyzer implements ImageAnalysis.Analyzer {
