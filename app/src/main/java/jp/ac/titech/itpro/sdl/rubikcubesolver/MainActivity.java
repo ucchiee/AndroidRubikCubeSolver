@@ -1,5 +1,6 @@
 package jp.ac.titech.itpro.sdl.rubikcubesolver;
 
+import static androidx.camera.core.ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST;
 import static org.opencv.core.CvType.CV_32F;
 import static org.opencv.ml.Ml.ROW_SAMPLE;
 import static java.lang.Math.min;
@@ -272,6 +273,7 @@ public class MainActivity extends AppCompatActivity {
                             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
                             // .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
                             .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                            .setBackpressureStrategy(STRATEGY_KEEP_ONLY_LATEST)
                             .build();
                     imageAnalysis.setAnalyzer(cameraExecutor, new MyImageAnalyzer());
                     CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
