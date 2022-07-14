@@ -5,7 +5,6 @@ import static org.opencv.ml.Ml.ROW_SAMPLE;
 import static java.lang.Math.min;
 
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
@@ -29,6 +28,7 @@ import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwner;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.opencv.android.Utils;
@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private final String[] REQUIRED_PERMISSIONS = new String[]{"android.permission.CAMERA", "android.permission.WRITE_EXTERNAL_STORAGE"};
 
     /*** Views ***/
+    protected LinearProgressIndicator scanIndicator;
     protected ImageView imageView;
     private CubeView cubeView;
     private Button resetButton;
@@ -81,10 +82,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        scanIndicator = findViewById(R.id.scanIndicator);
         imageView = findViewById(R.id.imageView);
         cubeView = findViewById(R.id.cubeView);
         resetButton = findViewById(R.id.resetButton);
         scanButton = findViewById(R.id.scanButton);
+
+        scanIndicator.show();
+        updateIndicator();
 
         scanButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -100,17 +105,13 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
                     }
-                    if (detectedColor[1][1] != currentFaceIdx) {
+                    if (detectedColor[1][1] != currentFaceIdx && currentFaceIdx < 5) {
                         new MaterialAlertDialogBuilder(MainActivity.this)
                                 .setTitle(R.string.right_face_dialog_title)
                                 .setMessage("Center color should be " + ImageUtil.colorName[currentFaceIdx] + ", instead of " + ImageUtil.colorName[detectedColor[1][1]] + ".")
-                                .setNegativeButton(R.string.right_face_dialog_negative, new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialogInterface, int i) {
-                                        scanRollback();
-                                    }
-                                })
+                                .setNegativeButton(R.string.right_face_dialog_negative, (dialogInterface, i) -> scanRollback())
                                 .setPositiveButton(R.string.right_face_dialog_positive, null)
+                                .setCancelable(false)
                                 .show();
                     }
                 }
@@ -120,7 +121,8 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     // solve
                     currentFaceIdx++;
-                    new Thread(() -> callSolver()).start();
+                    updateIndicator();
+                    new SolveTask().execute(scannedCube);
                 }
             }
         });
@@ -135,6 +137,7 @@ public class MainActivity extends AppCompatActivity {
                             .setMessage("Is it OK to finish this app?")
                             .setPositiveButton("Finish", (dialog, i) -> finish())
                             .setNegativeButton("Stay", (dialog, i) -> dialog.dismiss())
+                            .setCancelable(false)
                             .show();
                 }
             }
@@ -154,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
         }
         knn.train(trainData, ROW_SAMPLE, Converters.vector_int_to_Mat(ImageUtil.colorResponse));
 
-        // full initialize solver
+        // fully initialize solver
         Search.init();
     }
 
@@ -172,41 +175,10 @@ public class MainActivity extends AppCompatActivity {
         decorView.setSystemUiVisibility(uiOptions);
     }
 
-    private void callSolver() {
-        runOnUiThread(() -> disableButtons());
-        Log.i(TAG, "Scanned : " + scannedCube);
-        String scrambledCube = ImageUtil.convertCubeAnnotation(scannedCube);
-        Log.i(TAG, "Scrambled : " + scrambledCube);
-        int errorCode = Tools.verify(scrambledCube);
-        if (errorCode == 0) {
-            String result = new Search().solution(scrambledCube, 21, 100000000, 10000, Search.APPEND_LENGTH);
-            Log.i(TAG, "solution : " + result);
-            runOnUiThread(() -> {
-                new MaterialAlertDialogBuilder(MainActivity.this)
-                        .setTitle(R.string.solved_dialog_title)
-                        .setMessage(getString(R.string.solved_dialog_msg_prefix) + "\n" + result)
-                        .setPositiveButton(R.string.solved_dialog_positive, null)
-                        .show();
-                scanReset();
-            });
-        } else {
-            int msgIdx = (errorCode * -1) - 1;
-            runOnUiThread(() -> {
-                new MaterialAlertDialogBuilder(MainActivity.this)
-                        .setTitle(R.string.invalid_dialog_title)
-                        .setMessage("errorCode : " + errorCode + "\n" + ImageUtil.verifyMsg[msgIdx])
-                        .setPositiveButton(R.string.invalid_dialog_positive, (dialog, i) -> scanReset())
-                        .setNeutralButton(R.string.invalid_dialog_neutral, (dialog, i) -> scanRollback())
-                        .show();
-            });
-            Log.e(TAG, "[solver] Invalid cube (errorCode : " + errorCode + ")");
-        }
-        runOnUiThread(() -> enableButtons());
-    }
-
     private void scanReset() {
         currentFaceIdx = 0;
         scannedCube = "";
+        scanIndicator.setIndeterminate(false);
         display();
     }
 
@@ -223,6 +195,69 @@ public class MainActivity extends AppCompatActivity {
         cubeView.setSideColors(ImageUtil.arrSideColors[currentFaceIdx]);
         cubeView.setFrontColors(detectedColor);
         cubeView.setCenterColor(ImageUtil.colorLabel[currentFaceIdx]);
+        updateIndicator();
+    }
+
+    private class SolveTask extends android.os.AsyncTask<String, Void, String> {
+
+        private int lastErrorCode;
+
+        @Override
+        protected void onPreExecute() {
+            disableButtons();
+            scanIndicator.setIndeterminate(true);
+        }
+
+        @Override
+        protected String doInBackground(String... strings) {
+            String scannedCube = strings[0];
+            Log.i(TAG, "Scanned : " + scannedCube);
+            String scrambledCube = ImageUtil.convertCubeAnnotation(scannedCube);
+            Log.i(TAG, "Scrambled : " + scrambledCube);
+            lastErrorCode = Tools.verify(scrambledCube);
+            if (lastErrorCode == 0) {
+                String result = new Search().solution(scrambledCube, 21, 100000000, 10000, Search.APPEND_LENGTH);
+                return result;
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String moves) {
+            if (lastErrorCode == 0) {
+                new MaterialAlertDialogBuilder(MainActivity.this)
+                        .setTitle(R.string.solved_dialog_title)
+                        .setMessage(getString(R.string.solved_dialog_msg_prefix) + "\n" + moves)
+                        .setPositiveButton(R.string.solved_dialog_positive, (dialog, i) -> {
+                            scanIndicator.setIndeterminate(false);
+                            scanReset();
+                        })
+                        .setCancelable(false)
+                        .show();
+                enableButtons();
+            } else {
+                int msgIdx = (lastErrorCode * -1) - 1;
+                new MaterialAlertDialogBuilder(MainActivity.this)
+                        .setTitle(R.string.invalid_dialog_title)
+                        .setMessage("errorCode : " + lastErrorCode + "\n" + ImageUtil.verifyMsg[msgIdx])
+                        .setPositiveButton(R.string.invalid_dialog_positive, (dialog, i) -> {
+                            scanIndicator.setIndeterminate(false);
+                            scanReset();
+                        })
+                        .setNeutralButton(R.string.invalid_dialog_neutral, (dialog, i) -> {
+                            scanIndicator.setIndeterminate(false);
+                            scanRollback();
+                        })
+                        .setCancelable(false)
+                        .show();
+                Log.e(TAG, "[solver] Invalid cube (errorCode : " + lastErrorCode + ")");
+            }
+            enableButtons();
+        }
+    }
+
+    private void updateIndicator() {
+        scanIndicator.setProgress((int)(100 / 6) * currentFaceIdx, true);
     }
 
     private void startCamera() {
