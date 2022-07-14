@@ -228,18 +228,20 @@ public class MainActivity extends AppCompatActivity {
                 new MaterialAlertDialogBuilder(MainActivity.this)
                         .setTitle(R.string.solved_dialog_title)
                         .setMessage(getString(R.string.solved_dialog_msg_prefix) + "\n" + moves)
-                        .setPositiveButton(R.string.solved_dialog_positive, (dialog, i) -> scanReset())
+                        .setPositiveButton(R.string.solved_dialog_positive, null)
                         .setCancelable(false)
                         .show();
+                scanReset();
             } else {
                 int msgIdx = (lastErrorCode * -1) - 1;
                 new MaterialAlertDialogBuilder(MainActivity.this)
                         .setTitle(R.string.invalid_dialog_title)
                         .setMessage("errorCode : " + lastErrorCode + "\n" + ImageUtil.verifyMsg[msgIdx])
                         .setPositiveButton(R.string.invalid_dialog_positive, (dialog, i) -> scanReset())
-                        .setNeutralButton(R.string.invalid_dialog_neutral, (dialog, i) -> scanRollback())
+                        .setNeutralButton(R.string.invalid_dialog_neutral, null)
                         .setCancelable(false)
                         .show();
+                scanRollback();
                 Log.e(TAG, "[solver] Invalid cube (errorCode : " + lastErrorCode + ")");
             }
             enableButtons();
