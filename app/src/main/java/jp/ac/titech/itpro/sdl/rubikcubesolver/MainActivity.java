@@ -179,7 +179,6 @@ public class MainActivity extends AppCompatActivity {
     private void scanReset() {
         currentFaceIdx = 0;
         scannedCube = "";
-        scanIndicator.setIndeterminate(false);
         display();
     }
 
@@ -229,26 +228,16 @@ public class MainActivity extends AppCompatActivity {
                 new MaterialAlertDialogBuilder(MainActivity.this)
                         .setTitle(R.string.solved_dialog_title)
                         .setMessage(getString(R.string.solved_dialog_msg_prefix) + "\n" + moves)
-                        .setPositiveButton(R.string.solved_dialog_positive, (dialog, i) -> {
-                            scanIndicator.setIndeterminate(false);
-                            scanReset();
-                        })
+                        .setPositiveButton(R.string.solved_dialog_positive, (dialog, i) -> scanReset())
                         .setCancelable(false)
                         .show();
-                enableButtons();
             } else {
                 int msgIdx = (lastErrorCode * -1) - 1;
                 new MaterialAlertDialogBuilder(MainActivity.this)
                         .setTitle(R.string.invalid_dialog_title)
                         .setMessage("errorCode : " + lastErrorCode + "\n" + ImageUtil.verifyMsg[msgIdx])
-                        .setPositiveButton(R.string.invalid_dialog_positive, (dialog, i) -> {
-                            scanIndicator.setIndeterminate(false);
-                            scanReset();
-                        })
-                        .setNeutralButton(R.string.invalid_dialog_neutral, (dialog, i) -> {
-                            scanIndicator.setIndeterminate(false);
-                            scanRollback();
-                        })
+                        .setPositiveButton(R.string.invalid_dialog_positive, (dialog, i) -> scanReset())
+                        .setNeutralButton(R.string.invalid_dialog_neutral, (dialog, i) -> scanRollback())
                         .setCancelable(false)
                         .show();
                 Log.e(TAG, "[solver] Invalid cube (errorCode : " + lastErrorCode + ")");
@@ -258,7 +247,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateIndicator() {
-        scanIndicator.setProgress((int)(100 / 6) * currentFaceIdx, true);
+        scanIndicator.setIndeterminate(false);
+        scanIndicator.setProgress((int) (100 / 6) * currentFaceIdx, true);
     }
 
     private void startCamera() {
