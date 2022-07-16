@@ -94,39 +94,36 @@ public class MainActivity extends AppCompatActivity {
         scanIndicator.show();
         updateIndicator();
 
-        scanButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                // read detectedColor
-                synchronized (detectedColor) {
-                    for (int i = 0; i < 3; i++) {
-                        for (int j = 0; j < 3; j++) {
-                            if (i == 1 && j == 1) {
-                                scannedCube += ImageUtil.colorLabel[currentFaceIdx];
-                            } else {
-                                scannedCube += ImageUtil.colorLabel[detectedColor[j][i]];  // hacky idx
-                            }
+        scanButton.setOnClickListener(view -> {
+            // read detectedColor
+            synchronized (detectedColor) {
+                for (int i = 0; i < 3; i++) {
+                    for (int j = 0; j < 3; j++) {
+                        if (i == 1 && j == 1) {
+                            scannedCube += ImageUtil.colorLabel[currentFaceIdx];
+                        } else {
+                            scannedCube += ImageUtil.colorLabel[detectedColor[j][i]];  // hacky idx
                         }
                     }
-                    if (detectedColor[1][1] != currentFaceIdx && currentFaceIdx < 5) {
-                        new MaterialAlertDialogBuilder(MainActivity.this)
-                                .setTitle(R.string.right_face_dialog_title)
-                                .setMessage("Center color should be " + ImageUtil.colorName[currentFaceIdx] + ", instead of " + ImageUtil.colorName[detectedColor[1][1]] + ".")
-                                .setNegativeButton(R.string.right_face_dialog_negative, (dialogInterface, i) -> scanRollback())
-                                .setPositiveButton(R.string.right_face_dialog_positive, null)
-                                .setCancelable(false)
-                                .show();
-                    }
                 }
-                if (currentFaceIdx < 5) {
-                    currentFaceIdx++;
-                    display();
-                } else {
-                    // solve
-                    currentFaceIdx++;
-                    updateIndicator();
-                    new SolveTask().execute(scannedCube);
+                if (detectedColor[1][1] != currentFaceIdx && currentFaceIdx < 5) {
+                    new MaterialAlertDialogBuilder(MainActivity.this)
+                            .setTitle(R.string.right_face_dialog_title)
+                            .setMessage("Center color should be " + ImageUtil.colorName[currentFaceIdx] + ", instead of " + ImageUtil.colorName[detectedColor[1][1]] + ".")
+                            .setNegativeButton(R.string.right_face_dialog_negative, (dialogInterface, i) -> scanRollback())
+                            .setPositiveButton(R.string.right_face_dialog_positive, null)
+                            .setCancelable(false)
+                            .show();
                 }
+            }
+            if (currentFaceIdx < 5) {
+                currentFaceIdx++;
+                display();
+            } else {
+                // solve
+                currentFaceIdx++;
+                updateIndicator();
+                new SolveTask().execute(scannedCube);
             }
         });
         OnBackPressedCallback callback = new OnBackPressedCallback(true) {
