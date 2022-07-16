@@ -6,8 +6,10 @@ import static org.opencv.ml.Ml.ROW_SAMPLE;
 import static java.lang.Math.min;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Surface;
@@ -216,8 +218,7 @@ public class MainActivity extends AppCompatActivity {
             Log.i(TAG, "Scrambled : " + scrambledCube);
             lastErrorCode = Tools.verify(scrambledCube);
             if (lastErrorCode == 0) {
-                String result = new Search().solution(scrambledCube, 21, 100000000, 10000, Search.APPEND_LENGTH);
-                return result;
+                return new Search().solution(scrambledCube, 21, 100000000, 10000, Search.APPEND_LENGTH);
             }
             return null;
         }
@@ -229,6 +230,13 @@ public class MainActivity extends AppCompatActivity {
                         .setTitle(R.string.solved_dialog_title)
                         .setMessage(getString(R.string.solved_dialog_msg_prefix) + "\n" + moves)
                         .setPositiveButton(R.string.solved_dialog_positive, null)
+                        .setNeutralButton(R.string.solved_dialog_animation, (dialog, i) -> {
+                            String solution = moves.substring(0, moves.indexOf('(') - 1);
+                            Uri webpage = ImageUtil.generateAnimationLink(solution);
+                            Intent intent = new Intent(Intent.ACTION_VIEW, webpage);
+                            Log.i(TAG, "Start Animation");
+                            startActivity(intent);
+                        })
                         .setCancelable(false)
                         .show();
                 scanReset();
