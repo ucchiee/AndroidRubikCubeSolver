@@ -6,6 +6,7 @@ import static org.opencv.core.CvType.CV_8U;
 
 import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
+import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -18,6 +19,7 @@ import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -134,5 +136,23 @@ public class ImageUtil {
         Log.e(TAG, "Unexpected format : " + image.getFormat());
         assert false;
         return null;
+    }
+
+    static public Uri generateAnimationLink(String solution) {
+        String baseUrl = "https://ruwix.com/widget/3d/?";
+        String url = baseUrl + String.format("label=%s", "RubikCubeSolver");
+        url += String.format("&alg=%s", Uri.encode(solution));
+        // url += String.format("&colored=%s" , "*");
+        url += String.format("&hover=%s" , "4");
+        url += String.format("&speed=%s" , "1000");
+        url += String.format("&flags=%s" , "showalg");
+        url += String.format("&colors=%s" , Uri.encode("U:y L:r F:g R:o B:b D:w", ":"));
+        url += String.format("&pov=%s" , "Ufr");
+        url += String.format("&algdisplay=%s" , "rotations");
+
+        url = url.replace("'", "%27");
+
+        Log.i(TAG, "url : " + url);
+        return Uri.parse(url);
     }
 }

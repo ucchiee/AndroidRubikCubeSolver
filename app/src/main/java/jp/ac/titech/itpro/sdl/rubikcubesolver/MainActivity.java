@@ -6,8 +6,10 @@ import static org.opencv.ml.Ml.ROW_SAMPLE;
 import static java.lang.Math.min;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Surface;
@@ -92,39 +94,36 @@ public class MainActivity extends AppCompatActivity {
         scanIndicator.show();
         updateIndicator();
 
-        scanButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                // read detectedColor
-                synchronized (detectedColor) {
-                    for (int i = 0; i < 3; i++) {
-                        for (int j = 0; j < 3; j++) {
-                            if (i == 1 && j == 1) {
-                                scannedCube += ImageUtil.colorLabel[currentFaceIdx];
-                            } else {
-                                scannedCube += ImageUtil.colorLabel[detectedColor[j][i]];  // hacky idx
-                            }
+        scanButton.setOnClickListener(view -> {
+            // read detectedColor
+            synchronized (detectedColor) {
+                for (int i = 0; i < 3; i++) {
+                    for (int j = 0; j < 3; j++) {
+                        if (i == 1 && j == 1) {
+                            scannedCube += ImageUtil.colorLabel[currentFaceIdx];
+                        } else {
+                            scannedCube += ImageUtil.colorLabel[detectedColor[j][i]];  // hacky idx
                         }
                     }
-                    if (detectedColor[1][1] != currentFaceIdx && currentFaceIdx < 5) {
-                        new MaterialAlertDialogBuilder(MainActivity.this)
-                                .setTitle(R.string.right_face_dialog_title)
-                                .setMessage("Center color should be " + ImageUtil.colorName[currentFaceIdx] + ", instead of " + ImageUtil.colorName[detectedColor[1][1]] + ".")
-                                .setNegativeButton(R.string.right_face_dialog_negative, (dialogInterface, i) -> scanRollback())
-                                .setPositiveButton(R.string.right_face_dialog_positive, null)
-                                .setCancelable(false)
-                                .show();
-                    }
                 }
-                if (currentFaceIdx < 5) {
-                    currentFaceIdx++;
-                    display();
-                } else {
-                    // solve
-                    currentFaceIdx++;
-                    updateIndicator();
-                    new SolveTask().execute(scannedCube);
+                if (detectedColor[1][1] != currentFaceIdx && currentFaceIdx < 5) {
+                    new MaterialAlertDialogBuilder(MainActivity.this)
+                            .setTitle(R.string.right_face_dialog_title)
+                            .setMessage("Center color should be " + ImageUtil.colorName[currentFaceIdx] + ", instead of " + ImageUtil.colorName[detectedColor[1][1]] + ".")
+                            .setNegativeButton(R.string.right_face_dialog_negative, (dialogInterface, i) -> scanRollback())
+                            .setPositiveButton(R.string.right_face_dialog_positive, null)
+                            .setCancelable(false)
+                            .show();
                 }
+            }
+            if (currentFaceIdx < 5) {
+                currentFaceIdx++;
+                display();
+            } else {
+                // solve
+                currentFaceIdx++;
+                updateIndicator();
+                new SolveTask().execute(scannedCube);
             }
         });
         OnBackPressedCallback callback = new OnBackPressedCallback(true) {
@@ -216,8 +215,7 @@ public class MainActivity extends AppCompatActivity {
             Log.i(TAG, "Scrambled : " + scrambledCube);
             lastErrorCode = Tools.verify(scrambledCube);
             if (lastErrorCode == 0) {
-                String result = new Search().solution(scrambledCube, 21, 100000000, 10000, Search.APPEND_LENGTH);
-                return result;
+                return new Search().solution(scrambledCube, 21, 100000000, 10000, Search.APPEND_LENGTH);
             }
             return null;
         }
@@ -229,6 +227,13 @@ public class MainActivity extends AppCompatActivity {
                         .setTitle(R.string.solved_dialog_title)
                         .setMessage(getString(R.string.solved_dialog_msg_prefix) + "\n" + moves)
                         .setPositiveButton(R.string.solved_dialog_positive, null)
+                        .setNeutralButton(R.string.solved_dialog_animation, (dialog, i) -> {
+                            String solution = moves.substring(0, moves.indexOf('(') - 1);
+                            Uri webpage = ImageUtil.generateAnimationLink(solution);
+                            Intent intent = new Intent(Intent.ACTION_VIEW, webpage);
+                            Log.i(TAG, "Start Animation");
+                            startActivity(intent);
+                        })
                         .setCancelable(false)
                         .show();
                 scanReset();
